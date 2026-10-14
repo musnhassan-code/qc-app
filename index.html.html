@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>تطبيق مراقبة الجودة والشحن - QC & Logistics</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Libraries for Scanning & OCR -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card-glow {
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.08), 0 8px 10px -6px rgba(124, 58, 237, 0.04);
+        }
+        .btn-purple {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.39);
+        }
+        .btn-purple:active {
+            transform: scale(0.98);
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+            border-color: #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="pb-24 text-slate-800">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-brand-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    QC
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-900 leading-tight">فحص ومراقبة الجودة</h1>
+                    <p class="text-xs text-brand-600 font-semibold" id="current-datetime">جاري التحميل...</p>
+                </div>
+            </div>
+            <button onclick="resetForm()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-xl font-bold transition">
+                إعادة ضبط
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
+
+        <!-- STEP 1: Driver & Vehicle Information -->
+        <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4" id="section-1">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">1</span>
+                <h2 class="font-bold text-slate-800 text-base">بيانات الشاحنة والسائق</h2>
+            </div>
+
+            <!-- Driver Name -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">اسم السائق <span class="text-red-500">*</span></label>
+                <input type="text" id="driver-name" placeholder="اكتب اسم السائق كاملاً..." class="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 text-sm font-semibold text-slate-800 transition">
+            </div>
+
+            <!-- Vehicle Type -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">نوع السيارة / الشاحنة <span class="text-red-500">*</span></label>
+                <select id="vehicle-type" class="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 text-sm font-semibold text-slate-800 bg-white transition">
+                    <option value="">اختر نوع السيارة...</option>
+                    <option value="جامبو مبرد">جامبو مبرد</option>
+                    <option value="تريلا مبردة">تريلا مبردة</option>
+                    <option value="جامبو جاف">جامبو جاف</option>
+                    <option value="فان مبرد">فان مبرد</option>
+                    <option value="فان جاف">فان جاف</option>
+                    <option value="سيارة نقل صغيرة">سيارة نقل صغيرة</option>
+                </select>
+            </div>
+
+            <!-- Separator Toggle Switch -->
+            <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-arrows-split-up-and-left text-brand-600 text-base"></i>
+                    <div>
+                        <p class="text-xs font-bold text-slate-800">يوجد فاصل حراري (Separator)</p>
+                        <p class="text-[10px] text-slate-500 font-medium">في حالة تحميل شحنة ميكس (مجمدات + جاف)</p>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="has-separator" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                </label>
+            </div>
+        </section>
+
+        <!-- STEP 2: Cargo Scanning (QR Codes) -->
+        <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4" id="section-2">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">2</span>
+                    <h2 class="font-bold text-slate-800 text-base">مسح بوليصات الشحنة (QR Codes)</h2>
+                </div>
+                <span id="qr-count-badge" class="bg-brand-50 text-brand-700 font-extrabold text-xs px-2.5 py-1 rounded-full border border-brand-100">
+                    0 بوليصة
+                </span>
+            </div>
+
+            <!-- Cargo Type Selector Buttons -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">نوع الحمولة الممسوحة:</label>
+                <div class="grid grid-cols-3 gap-2" id="cargo-types-grid">
+                    <button type="button" onclick="selectCargoType('frozen')" id="btn-cargo-frozen" class="cargo-type-btn flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-brand-600 bg-brand-50/50 text-brand-700 transition">
+                        <i class="fa-solid fa-snowflake text-xl mb-1"></i>
+                        <span class="text-xs font-bold">مجمدات</span>
+                    </button>
+                    <button type="button" onclick="selectCargoType('fresh')" id="btn-cargo-fresh" class="cargo-type-btn flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 transition">
+                        <i class="fa-solid fa-carrot text-xl mb-1"></i>
+                        <span class="text-xs font-bold">خضار/فواكه</span>
+                    </button>
+                    <button type="button" onclick="selectCargoType('dry')" id="btn-cargo-dry" class="cargo-type-btn flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 transition">
+                        <i class="fa-solid fa-box text-xl mb-1"></i>
+                        <span class="text-xs font-bold">بضائع جافة</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scanner Trigger -->
+            <button onclick="startScanner()" class="w-full btn-purple text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg transition">
+                <i class="fa-solid fa-qrcode text-lg"></i>
+                <span>فتح كاميرا المسح (QR Code)</span>
+            </button>
+
+            <!-- Scanner Modal/Container -->
+            <div id="scanner-wrapper" class="hidden relative bg-black rounded-2xl overflow-hidden">
+                <div id="reader" class="w-full"></div>
+                <button onclick="stopScanner()" class="absolute top-2 left-2 bg-red-600 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center z-10 shadow-md">✕</button>
+            </div>
+
+            <!-- Manual QR Input -->
+            <div class="flex gap-2">
+                <input type="text" id="manual-qr-input" placeholder="إدخال رقم البوليصة يدوياً..." class="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-600">
+                <button onclick="addManualQR()" class="bg-slate-900 text-white font-bold px-4 rounded-2xl text-xs hover:bg-slate-800 transition">إضافة</button>
+            </div>
+
+            <!-- Scanned List -->
+            <div id="scanned-qr-list" class="space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-center text-xs text-slate-400 py-3 font-medium">لم يتم مسح أي بوليصات بعد</p>
+            </div>
+        </section>
+
+        <!-- STEP 3: Temperature Inspection -->
+        <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-3" id="section-3">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">3</span>
+                <h2 class="font-bold text-slate-800 text-base">درجة الحرارة الفعلية للتبريد</h2>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">درجة الحرارة الفعلية (°C) <span class="text-red-500">*</span></label>
+                <div class="relative">
+                    <input type="number" step="0.1" id="actual-temp" placeholder="مثال: -18.5 أو 4.0" class="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-brand-600 text-sm font-bold text-slate-800 pl-10">
+                    <span class="absolute left-4 top-3 text-slate-400 font-bold text-xs">°C</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 4: POD & Seal Photo Capture -->
+        <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4" id="section-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">4</span>
+                <h2 class="font-bold text-slate-800 text-base">صورة المكونات والسيل (POD & Seals)</h2>
+            </div>
+
+            <!-- POD Photo -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">1. صورة السيارة من الداخل (POD) <span class="text-red-500">*</span></label>
+                <input type="file" id="pod-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handlePODImage(this)">
+                <div onclick="document.getElementById('pod-camera-input').click()" class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer transition flex flex-col items-center justify-center gap-2 min-h-[110px]" id="pod-preview-box">
+                    <i class="fa-solid fa-camera text-2xl text-brand-600"></i>
+                    <span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة داخلية الشاحنة</span>
+                </div>
+            </div>
+
+            <!-- Seal Photo & OCR Extractor -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">2. صورة السيل واستخراج أرقام الأختام تلقائياً <span class="text-red-500">*</span></label>
+                <input type="file" id="seal-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleSealImage(this)">
+                <div onclick="document.getElementById('seal-camera-input').click()" class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer transition flex flex-col items-center justify-center gap-2 min-h-[110px]" id="seal-preview-box">
+                    <i class="fa-solid fa-stamp text-2xl text-brand-600"></i>
+                    <span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (Seal Image)</span>
+                </div>
+
+                <!-- Extracted Seals Fields -->
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1">رقم السيل الأول (Seal 1) <span class="text-red-500">*</span></label>
+                        <input type="text" id="seal-1-num" placeholder="رقم السيل 1" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 mb-1">رقم السيل الثاني (Seal 2)</label>
+                        <input type="text" id="seal-2-num" placeholder="رقم السيل 2 (اختياري)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 5: QC Inspector & Notes -->
+        <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4" id="section-5">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">5</span>
+                <h2 class="font-bold text-slate-800 text-base">اعتماد مسؤول الجودة والملاحظات</h2>
+            </div>
+
+            <!-- QC Name -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">اسم مسؤول الجودة (QC Inspector) <span class="text-red-500">*</span></label>
+                <input type="text" id="qc-inspector-name" placeholder="اكتب اسمك كاملاً..." class="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:border-brand-600 text-sm font-semibold text-slate-800">
+            </div>
+
+            <!-- Notes (Optional) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">ملاحظات إضافية (اختياري)</label>
+                <textarea id="inspection-notes" rows="2" placeholder="أية ملاحظات خاصة بالشحنة أو الحالة..." class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-600"></textarea>
+            </div>
+        </section>
+
+        <!-- Submit Button -->
+        <button onclick="submitInspectionReport()" id="btn-submit" class="w-full btn-purple text-white font-extrabold text-base py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl transition">
+            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+            <span>اعتماد التقرير وترحيل البيانات</span>
+        </button>
+
+    </main>
+
+    <!-- JS Logic Scripts -->
+    <script>
+        // GOOGLE APPS SCRIPT SCRIPT URL
+        const SCRIPT_URL = "https://script.google.com/a/macros/noon.com/s/AKfycbyFRqvPsgukRv5wwhWYWdjH4Q7ziVk8I31R8cfirp3yQm_0qh6DHq0uaaBTp1noKQUo/exec";
+
+        let scannedQRCodes = [];
+        let currentCargoType = 'frozen';
+        let html5QrCode = null;
+        let podImageData = "";
+        let sealImageData = "";
+
+        // Set Current DateTime
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('current-datetime').innerText = now.toLocaleDateString('ar-EG', options);
+        }
+        updateDateTime();
+
+        // Select Cargo Type
+        function selectCargoType(type) {
+            currentCargoType = type;
+            document.querySelectorAll('.cargo-type-btn').forEach(btn => {
+                btn.classList.remove('border-brand-600', 'bg-brand-50/50', 'text-brand-700');
+                btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
+            });
+            const activeBtn = document.getElementById(`btn-cargo-${type}`);
+            activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
+            activeBtn.classList.add('border-brand-600', 'bg-brand-50/50', 'text-brand-700');
+        }
+
+        // Add Scanned or Manual QR
+        function addQRCode(codeText) {
+            if (!codeText) return;
+            const typeArabic = currentCargoType === 'frozen' ? 'مجمدات' : (currentCargoType === 'fresh' ? 'خضار/فواكه' : 'جاف');
+            scannedQRCodes.push({ code: codeText, type: typeArabic, time: new Date().toLocaleTimeString('ar-EG') });
+            renderScannedList();
+            showToast("تمت إضافة البوليصة بنجاح", "success");
+        }
+
+        function addManualQR() {
+            const input = document.getElementById('manual-qr-input');
+            if (input.value.trim()) {
+                addQRCode(input.value.trim());
+                input.value = "";
+            }
+        }
+
+        function removeQR(index) {
+            scannedQRCodes.splice(index, 1);
+            renderScannedList();
+        }
+
+        function renderScannedList() {
+            const listContainer = document.getElementById('scanned-qr-list');
+            document.getElementById('qr-count-badge').innerText = `${scannedQRCodes.length} بوليصة`;
+
+            if (scannedQRCodes.length === 0) {
+                listContainer.innerHTML = `<p class="text-center text-xs text-slate-400 py-3 font-medium">لم يتم مسح أي بوليصات بعد</p>`;
+                return;
+            }
+
+            listContainer.innerHTML = scannedQRCodes.map((item, index) => `
+                <div class="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">${item.type}</span>
+                        <span class="font-bold text-slate-800">${item.code}</span>
+                    </div>
+                    <button onclick="removeQR(${index})" class="text-red-500 hover:text-red-700 font-bold px-2">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // QR Scanner Logic
+        function startScanner() {
+            document.getElementById('scanner-wrapper').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    addQRCode(decodedText);
+                    stopScanner();
+                },
+                (errorMessage) => { }
+            ).catch(err => {
+                showToast("تعذر فتح الكاميرا، يرجى التأكد من الصلاحيات", "error");
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-wrapper').classList.add('hidden');
+                }).catch(() => {
+                    document.getElementById('scanner-wrapper').classList.add('hidden');
+                });
+            } else {
+                document.getElementById('scanner-wrapper').classList.add('hidden');
+            }
+        }
+
+        // Image Handling Logic
+        function handlePODImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    podImageData = e.target.result;
+                    document.getElementById('pod-preview-box').innerHTML = `
+                        <img src="${e.target.result}" class="max-h-36 rounded-xl object-contain border border-brand-500">
+                        <span class="text-[10px] font-bold text-emerald-600">✓ تم التقاط صورة داخلية الشاحنة</span>
+                    `;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function handleSealImage(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    sealImageData = e.target.result;
+                    document.getElementById('seal-preview-box').innerHTML = `
+                        <img src="${e.target.result}" class="max-h-36 rounded-xl object-contain border border-brand-500">
+                        <span class="text-[10px] font-bold text-brand-600">جاري قراءة أرقام الأختام (OCR)...</span>
+                    `;
+                    
+                    // Run OCR Engine
+                    Tesseract.recognize(file, 'eng', { logger: m => console.log(m) })
+                        .then(({ data: { text } }) => {
+                            const numbers = text.match(/\d+/g);
+                            if (numbers && numbers.length > 0) {
+                                document.getElementById('seal-1-num').value = numbers[0] || '';
+                                if (numbers.length > 1) document.getElementById('seal-2-num').value = numbers[1] || '';
+                                showToast("تم استخراج أرقام الأختام تلقائياً", "success");
+                            }
+                            document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم التقاط صورة السيل";
+                            document.getElementById('seal-preview-box').querySelector('span').className = "text-[10px] font-bold text-emerald-600";
+                        })
+                        .catch(() => {
+                            document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم حفظ الصورة (يرجى إدخال الأرقام يدوياً)";
+                        });
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Form Validation & Shake Animation
+        function validateAndGetFormData() {
+            let isValid = true;
+            const driverName = document.getElementById('driver-name');
+            const vehicleType = document.getElementById('vehicle-type');
+            const actualTemp = document.getElementById('actual-temp');
+            const seal1 = document.getElementById('seal-1-num');
+            const qcInspector = document.getElementById('qc-inspector-name');
+
+            // Reset animations
+            [driverName, vehicleType, actualTemp, seal1, qcInspector].forEach(el => el.classList.remove('animate-shake'));
+
+            if (!driverName.value.trim()) { driverName.classList.add('animate-shake'); isValid = false; }
+            if (!vehicleType.value) { vehicleType.classList.add('animate-shake'); isValid = false; }
+            if (!actualTemp.value.trim()) { actualTemp.classList.add('animate-shake'); isValid = false; }
+            if (!seal1.value.trim()) { seal1.classList.add('animate-shake'); isValid = false; }
+            if (!qcInspector.value.trim()) { qcInspector.classList.add('animate-shake'); isValid = false; }
+            
+            if (!podImageData) {
+                showToast("برجاء التقاط صورة داخل الشاحنة (POD)", "error");
+                isValid = false;
+            }
+
+            if (!isValid) {
+                showToast("برجاء استكمال كافة الحقول المطلوبة بالشكل الصحيح", "error");
+                return null;
+            }
+
+            return {
+                driverName: driverName.value.trim(),
+                vehicleType: vehicleType.value,
+                hasSeparator: document.getElementById('has-separator').checked,
+                cargoType: scannedQRCodes.map(q => q.type).join(' - ') || 'عام',
+                qrCodes: scannedQRCodes.map(q => `${q.code} (${q.type})`),
+                temperature: actualTemp.value.trim(),
+                podImage: podImageData,
+                sealImage: sealImageData,
+                seal1: seal1.value.trim(),
+                seal2: document.getElementById('seal-2-num').value.trim(),
+                qcInspector: qcInspector.value.trim(),
+                notes: document.getElementById('inspection-notes').value.trim()
+            };
+        }
+
+        // Submit to Google Sheets
+        function submitInspectionReport() {
+            const formData = validateAndGetFormData();
+            if (!formData) return;
+
+            const submitBtn = document.getElementById('btn-submit');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xl"></i><span>جاري إرسال التقرير للشيت...</span>`;
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(() => {
+                showToast("تم اعتماد التقرير وترحيله إلى Google Sheets بنجاح!", "success");
+                setTimeout(() => { resetForm(); }, 2000);
+            })
+            .catch(err => {
+                showToast("حدث خطأ أثناء الاتصال بالخادم", "error");
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xl"></i><span>اعتماد التقرير وترحيل البيانات</span>`;
+            });
+        }
+
+        // Reset Form
+        function resetForm() {
+            document.getElementById('driver-name').value = '';
+            document.getElementById('vehicle-type').value = '';
+            document.getElementById('has-separator').checked = false;
+            document.getElementById('actual-temp').value = '';
+            document.getElementById('seal-1-num').value = '';
+            document.getElementById('seal-2-num').value = '';
+            document.getElementById('qc-inspector-name').value = '';
+            document.getElementById('inspection-notes').value = '';
+            scannedQRCodes = [];
+            podImageData = "";
+            sealImageData = "";
+            renderScannedList();
+            document.getElementById('pod-preview-box').innerHTML = `<i class="fa-solid fa-camera text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة داخلية الشاحنة</span>`;
+            document.getElementById('seal-preview-box').innerHTML = `<i class="fa-solid fa-stamp text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (Seal Image)</span>`;
+        }
+
+        // Toast Helper
+        function showToast(message, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `p-3.5 rounded-2xl text-xs font-extrabold text-white shadow-xl flex items-center justify-between transition-all duration-300 pointer-events-auto ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`;
+            toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="text-white font-bold px-1">✕</button>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 4000);
+        }
+    </script>
+</body>
+</html>

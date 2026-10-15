@@ -9,10 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Firebase App & Realtime Database SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
     <script>
         tailwind.config = {
             theme: {
@@ -43,8 +39,8 @@
                     QC
                 </div>
                 <div>
-                    <h1 class="text-xl font-black text-slate-900 leading-tight">لوحة متابعة وتحليلات عمليات الجودة (Live Firebase)</h1>
-                    <p class="text-xs font-bold text-slate-500">تحديث لحظي ومباشر لكافة الأجهزة والشاشات</p>
+                    <h1 class="text-xl font-black text-slate-900 leading-tight">لوحة متابعة وتحليلات عمليات الجودة (QC Dashboard)</h1>
+                    <p class="text-xs font-bold text-slate-500">عرض فوري ومباشر لكافة الفحوصات المسجلة</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
@@ -128,7 +124,7 @@
                     </thead>
                     <tbody id="data-table-body" class="divide-y divide-slate-100 font-semibold text-slate-800">
                         <tr>
-                            <td colspan="12" class="text-center py-8 text-slate-400 font-bold">جاري الاتصال المباشر بالسيرفر...</td>
+                            <td colspan="12" class="text-center py-8 text-slate-400 font-bold">جاري تحميل السجلات...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -137,7 +133,7 @@
 
     </div>
 
-    <!-- Image Modal -->
+    <!-- Image Modal Container -->
     <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
         <div class="relative bg-white rounded-3xl max-w-xl w-full p-4 overflow-hidden">
             <button onclick="closeModal()" class="absolute top-3 left-3 bg-slate-100 text-slate-800 rounded-full w-8 h-8 font-bold flex items-center justify-center z-10">✕</button>
@@ -146,28 +142,12 @@
     </div>
 
     <script>
-        // Firebase Config
-        const firebaseConfig = {
-            databaseURL: "https://qc-app-live-default-rtdb.firebaseio.com"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
         let allRecords = [];
 
-        // Realtime Listener
-        function listenToRealtimeData() {
-            database.ref('qc_inspections').on('value', (snapshot) => {
-                const data = snapshot.val();
-                allRecords = [];
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        allRecords.unshift({ key: key, ...data[key] });
-                    });
-                }
-                renderTable(allRecords);
-                updateKPIs(allRecords);
-            });
+        function loadLocalData() {
+            allRecords = JSON.parse(localStorage.getItem('qc_app_records') || '[]');
+            renderTable(allRecords);
+            updateKPIs(allRecords);
         }
 
         function updateKPIs(data) {
@@ -188,7 +168,7 @@
                 return;
             }
 
-            tbody.innerHTML = data.map((row) => `
+            tbody.innerHTML = data.map((row, index) => `
                 <tr class="hover:bg-slate-50/80 transition">
                     <td class="p-4 whitespace-nowrap text-slate-500">${row.timestamp}</td>
                     <td class="p-4 font-bold text-slate-900">${row.driverName}</td>
@@ -210,7 +190,7 @@
                     </td>
                     <td class="p-4 font-bold text-slate-900">${row.qcInspector}</td>
                     <td class="p-4">
-                        <button onclick="deleteRecord('${row.key}')" class="text-red-500 hover:text-red-700 font-bold"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="deleteRecord(${index})" class="text-red-500 hover:text-red-700 font-bold"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('');
@@ -229,9 +209,11 @@
             renderTable(filtered);
         }
 
-        function deleteRecord(key) {
+        function deleteRecord(index) {
             if (confirm("هل أنت تأكد من حذف هذا السجل نهائياً؟")) {
-                database.ref('qc_inspections/' + key).remove();
+                allRecords.splice(index, 1);
+                localStorage.setItem('qc_app_records', JSON.stringify(allRecords));
+                loadLocalData();
             }
         }
 
@@ -262,7 +244,7 @@
             document.getElementById('image-modal').classList.add('hidden');
         }
 
-        listenToRealtimeData();
+        loadLocalData();
     </script>
 </body>
 </html>

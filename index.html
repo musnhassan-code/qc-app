@@ -10,8 +10,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Libraries -->
+    <!-- Libraries for QR & OCR Text Extraction -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -158,27 +159,44 @@
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">4</span>
-                <h2 class="font-bold text-slate-800 text-base">صورة المكونات والسيل (POD & Seals)</h2>
+                <h2 class="font-bold text-slate-800 text-base">صورة المكونات والأختام (POD & Seals)</h2>
             </div>
+            
+            <!-- POD Image Input -->
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-2">1. صورة السيارة من الداخل (POD) <span class="text-red-500">*</span></label>
                 <input type="file" id="pod-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 cursor-pointer" onchange="handlePODImage(this)">
                 <div id="pod-preview-box" class="mt-2"></div>
             </div>
-            <div class="pt-2">
-                <label class="block text-xs font-bold text-slate-700 mb-2">2. صورة أختام السيل (Seal Image)</label>
-                <input type="file" id="seal-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 cursor-pointer" onchange="handleSealImage(this)">
-                <div id="seal-preview-box" class="mt-2"></div>
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-700 mb-1">رقم السيل الأول (Seal 1) <span class="text-red-500">*</span></label>
-                        <input type="text" id="seal-1-num" placeholder="اكتب رقم السيل..." class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:border-brand-600 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-700 mb-1">رقم السيل الثاني (Seal 2)</label>
-                        <input type="text" id="seal-2-num" placeholder="رقم السيل 2 (اختياري)" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:border-brand-600 focus:outline-none">
-                    </div>
+
+            <!-- Seal 1 with Dedicated OCR Camera -->
+            <div class="pt-2 border-t border-slate-100">
+                <label class="block text-xs font-bold text-slate-700 mb-2">2. السيل الأول (Seal 1) والقراءة الآلية <span class="text-red-500">*</span></label>
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="file" id="seal1-camera-input" accept="image/*" capture="environment" class="hidden" onchange="processSealOCR(this, 1)">
+                    <button type="button" onclick="document.getElementById('seal1-camera-input').click()" class="bg-brand-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>تلميح كاميرا Seal 1</span>
+                    </button>
+                    <span id="ocr-status-1" class="text-[11px] font-bold text-slate-400"></span>
                 </div>
+                <input type="text" id="seal-1-num" placeholder="رقم السيل المبتدئ بـ NM و 5 أرقام (مثال: NM05063)..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:border-brand-600 focus:outline-none">
+                <div id="seal1-preview-box" class="mt-2"></div>
+            </div>
+
+            <!-- Seal 2 with Dedicated OCR Camera -->
+            <div class="pt-2 border-t border-slate-100">
+                <label class="block text-xs font-bold text-slate-700 mb-2">3. السيل الثاني (Seal 2 - اختياري) والقراءة الآلية</label>
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="file" id="seal2-camera-input" accept="image/*" capture="environment" class="hidden" onchange="processSealOCR(this, 2)">
+                    <button type="button" onclick="document.getElementById('seal2-camera-input').click()" class="bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>تلميح كاميرا Seal 2</span>
+                    </button>
+                    <span id="ocr-status-2" class="text-[11px] font-bold text-slate-400"></span>
+                </div>
+                <input type="text" id="seal-2-num" placeholder="رقم السيل 2 المبتدئ بـ NM..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:border-brand-600 focus:outline-none">
+                <div id="seal2-preview-box" class="mt-2"></div>
             </div>
         </section>
 
@@ -209,7 +227,8 @@
         let currentCargoType = 'frozen';
         let html5QrCode = null;
         let podImageData = "";
-        let sealImageData = "";
+        let seal1ImageData = "";
+        let seal2ImageData = "";
 
         function updateDateTime() {
             const now = new Date();
@@ -290,14 +309,14 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const max_size = 250;
+                    const max_size = 350;
                     if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } }
                     else { if (height > max_size) { width *= max_size / height; height = max_size; } }
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.3));
+                    callback(canvas.toDataURL('image/jpeg', 0.4));
                 }
                 img.src = e.target.result;
             }
@@ -311,25 +330,50 @@
                     document.getElementById('pod-preview-box').innerHTML = `
                         <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-emerald-700 text-xs font-bold">
                             <i class="fa-solid fa-check-circle text-base"></i>
-                            <span>تم تجهيز صورة POD بنجاح</span>
+                            <span>تم حفظ صورة POD</span>
                         </div>
                     `;
                 });
             }
         }
 
-        function handleSealImage(input) {
-            if (input.files && input.files[0]) {
-                compressImage(input.files[0], function(base64) {
-                    sealImageData = base64;
-                    document.getElementById('seal-preview-box').innerHTML = `
-                        <div class="flex items-center gap-2 bg-brand-50 border border-brand-200 p-2 rounded-xl text-brand-700 text-xs font-bold">
-                            <i class="fa-solid fa-check-circle text-base"></i>
-                            <span>تم تجهيز صورة السيل بنجاح</span>
-                        </div>
-                    `;
-                });
-            }
+        // Automatic OCR Processing for NM+5Digits Seals
+        function processSealOCR(input, sealIndex) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const statusElem = document.getElementById(`ocr-status-${sealIndex}`);
+            const previewBox = document.getElementById(`seal${sealIndex}-preview-box`);
+            
+            statusElem.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-brand-600"></i> جاري استخراج كود NM...`;
+
+            compressImage(file, function(base64) {
+                if (sealIndex === 1) seal1ImageData = base64;
+                else seal2ImageData = base64;
+
+                previewBox.innerHTML = `
+                    <div class="flex items-center gap-2 bg-brand-50 border border-brand-200 p-2 rounded-xl text-brand-700 text-xs font-bold">
+                        <i class="fa-solid fa-check-circle text-base"></i>
+                        <span>تم حفظ صورة السيل ${sealIndex}</span>
+                    </div>
+                `;
+
+                // Perform Tesseract OCR with NM Regex Extraction
+                Tesseract.recognize(file, 'eng')
+                    .then(({ data: { text } }) => {
+                        // Regex pattern matching 'NM' or 'NM ' followed by exactly 5 digits
+                        const matchedPattern = text.match(/NM\s*\d{5}/i);
+                        if (matchedPattern && matchedPattern.length > 0) {
+                            const cleanCode = matchedPattern[0].replace(/\s+/g, '').toUpperCase();
+                            document.getElementById(`seal-${sealIndex}-num`).value = cleanCode;
+                            statusElem.innerHTML = `<span class="text-emerald-600"><i class="fa-solid fa-check"></i> تم استخراج (${cleanCode})</span>`;
+                        } else {
+                            statusElem.innerHTML = `<span class="text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i> اكتب الرقم يدوياً</span>`;
+                        }
+                    })
+                    .catch(() => {
+                        statusElem.innerHTML = `<span class="text-slate-400">اكتب الرقم يدوياً</span>`;
+                    });
+            });
         }
 
         function validateAndGetFormData() {
@@ -363,7 +407,7 @@
                 qrCodes: scannedQRCodes.map(q => `${q.code} (${q.type})`).join(' | ') || '-',
                 temperature: actualTemp.value.trim(),
                 podUrl: podImageData,
-                sealUrl: sealImageData,
+                sealUrl: seal1ImageData || seal2ImageData,
                 seals: (seal1.value.trim() || '-') + ' / ' + (document.getElementById('seal-2-num').value.trim() || '-'),
                 qcInspector: qcInspector.value.trim(),
                 notes: document.getElementById('inspection-notes').value.trim() || '-'
@@ -382,7 +426,7 @@
             existingData.unshift(formData);
             localStorage.setItem('qc_app_records', JSON.stringify(existingData));
 
-            showToast("تم الاعتماد والترحيل المباشر بنجاح!", "success");
+            showToast("تم الحفظ والترحيل المباشر بنجاح!", "success");
             setTimeout(() => {
                 window.location.href = "dashboard.html";
             }, 600);
@@ -399,12 +443,14 @@
             document.getElementById('inspection-notes').value = '';
             scannedQRCodes = [];
             podImageData = "";
-            sealImageData = "";
+            seal1ImageData = "";
+            seal2ImageData = "";
             renderScannedList();
             document.getElementById('pod-preview-box').innerHTML = '';
-            document.getElementById('seal-preview-box').innerHTML = '';
-            document.getElementById('pod-camera-input').value = '';
-            document.getElementById('seal-camera-input').value = '';
+            document.getElementById('seal1-preview-box').innerHTML = '';
+            document.getElementById('seal2-preview-box').innerHTML = '';
+            document.getElementById('ocr-status-1').innerHTML = '';
+            document.getElementById('ocr-status-2').innerHTML = '';
         }
 
         function showToast(message, type = "success") {

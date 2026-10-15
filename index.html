@@ -10,12 +10,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- QR Reader -->
+    <!-- Libraries -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-
-    <!-- Firebase App & Realtime Database SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
         tailwind.config = {
@@ -44,6 +40,7 @@
 
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -201,21 +198,13 @@
             </div>
         </section>
 
-        <!-- Submit Button -->
         <button onclick="submitInspectionReport()" id="btn-submit" class="w-full btn-purple text-white font-extrabold text-base py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl">
-            <i class="fa-solid fa-cloud-arrow-up text-xl"></i><span>حفظ وترحيل مباشر للداشبورد</span>
+            <i class="fa-solid fa-paper-plane text-xl"></i><span>حفظ وترحيل مباشر للداشبورد</span>
         </button>
 
     </main>
 
     <script>
-        // Firebase Config
-        const firebaseConfig = {
-            databaseURL: "https://qc-app-live-default-rtdb.firebaseio.com"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
         let scannedQRCodes = [];
         let currentCargoType = 'frozen';
         let html5QrCode = null;
@@ -301,14 +290,14 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const max_size = 350;
+                    const max_size = 250;
                     if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } }
                     else { if (height > max_size) { width *= max_size / height; height = max_size; } }
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.4));
+                    callback(canvas.toDataURL('image/jpeg', 0.3));
                 }
                 img.src = e.target.result;
             }
@@ -365,6 +354,7 @@
             }
 
             return {
+                id: Date.now(),
                 timestamp: new Date().toLocaleString("ar-EG"),
                 driverName: driverName.value.trim(),
                 vehicleType: vehicleType.value,
@@ -386,22 +376,16 @@
 
             const submitBtn = document.getElementById('btn-submit');
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xl"></i><span>جاري الترحيل المباشر...</span>`;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xl"></i><span>جاري الحفظ والترحيل...</span>`;
 
-            // Push to Firebase Realtime Database
-            const newRef = database.ref('qc_inspections').push();
-            newRef.set(formData)
-                .then(() => {
-                    showToast("تم الحفظ والترحيل المباشر بنجاح!", "success");
-                    setTimeout(() => {
-                        window.location.href = "dashboard.html";
-                    }, 800);
-                })
-                .catch(err => {
-                    showToast("حدث خطأ، برجاء المحاولة مجدداً", "error");
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xl"></i><span>حفظ وترحيل مباشر للداشبورد</span>`;
-                });
+            let existingData = JSON.parse(localStorage.getItem('qc_app_records') || '[]');
+            existingData.unshift(formData);
+            localStorage.setItem('qc_app_records', JSON.stringify(existingData));
+
+            showToast("تم الاعتماد والترحيل المباشر بنجاح!", "success");
+            setTimeout(() => {
+                window.location.href = "dashboard.html";
+            }, 600);
         }
 
         function resetForm() {

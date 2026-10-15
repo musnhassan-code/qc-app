@@ -9,6 +9,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Firebase App & Realtime Database SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -39,14 +43,18 @@
                     QC
                 </div>
                 <div>
-                    <h1 class="text-xl font-black text-slate-900 leading-tight">لوحة متابعة وتحليلات عمليات الجودة (QC Dashboard)</h1>
-                    <p class="text-xs font-bold text-slate-500">مراقبة وترحيل بيانات الشحنات المباشرة</p>
+                    <h1 class="text-xl font-black text-slate-900 leading-tight">لوحة متابعة وتحليلات عمليات الجودة (Live Firebase)</h1>
+                    <p class="text-xs font-bold text-slate-500">تحديث لحظي ومباشر لكافة الأجهزة والشاشات</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="fetchSheetData()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-3 rounded-2xl flex items-center gap-2 shadow-md transition">
-                    <i class="fa-solid fa-rotate text-sm" id="refresh-icon"></i>
-                    <span>تحديث البيانات المباشرة</span>
+                <a href="index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-4 py-3 rounded-2xl flex items-center gap-2 transition">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span>إضافة فحص جديد</span>
+                </a>
+                <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-3 rounded-2xl flex items-center gap-2 shadow-md transition">
+                    <i class="fa-solid fa-file-excel text-sm"></i>
+                    <span>تصدير ملف Excel</span>
                 </button>
             </div>
         </header>
@@ -115,11 +123,12 @@
                             <th class="p-4">صورة POD</th>
                             <th class="p-4">صورة السيل</th>
                             <th class="p-4">مسؤول QC</th>
+                            <th class="p-4">حذف</th>
                         </tr>
                     </thead>
                     <tbody id="data-table-body" class="divide-y divide-slate-100 font-semibold text-slate-800">
                         <tr>
-                            <td colspan="11" class="text-center py-8 text-slate-400 font-bold">جاري تحميل البيانات من شيت الجودة...</td>
+                            <td colspan="12" class="text-center py-8 text-slate-400 font-bold">جاري الاتصال المباشر بالسيرفر...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -137,32 +146,28 @@
     </div>
 
     <script>
-        // ضع رابط الـ Web App العام هنا بدون نطاق الشركة
-        const SCRIPT_URL = "https://script.google.com/a/macros/noon.com/s/AKfycbxD3UrsusrXurvTjq2w4Va04NX_Iq_tybk23GPmxr1yr6hflj2DGMzRCpfelwFSg5SI/exec";
+        // Firebase Config
+        const firebaseConfig = {
+            databaseURL: "https://qc-app-live-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         let allRecords = [];
 
-        function fetchSheetData() {
-            const icon = document.getElementById('refresh-icon');
-            icon.classList.add('fa-spin');
-
-            fetch(SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
-                    allRecords = data.records || [];
-                    renderTable(allRecords);
-                    updateKPIs(allRecords);
-                })
-                .catch(err => {
-                    document.getElementById('data-table-body').innerHTML = `
-                        <tr>
-                            <td colspan="11" class="text-center py-8 text-red-500 font-bold">تعذر تحميل البيانات المباشرة حالياً (يرجى التأكد من صلاحيات الرابط)</td>
-                        </tr>
-                    `;
-                })
-                .finally(() => {
-                    icon.classList.remove('fa-spin');
-                });
+        // Realtime Listener
+        function listenToRealtimeData() {
+            database.ref('qc_inspections').on('value', (snapshot) => {
+                const data = snapshot.val();
+                allRecords = [];
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        allRecords.unshift({ key: key, ...data[key] });
+                    });
+                }
+                renderTable(allRecords);
+                updateKPIs(allRecords);
+            });
         }
 
         function updateKPIs(data) {
@@ -179,11 +184,11 @@
         function renderTable(data) {
             const tbody = document.getElementById('data-table-body');
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-slate-400 font-bold">لا توجد سجلات مسجلة بعد</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-slate-400 font-bold">لا توجد سجلات مسجلة بعد</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = data.map(row => `
+            tbody.innerHTML = data.map((row) => `
                 <tr class="hover:bg-slate-50/80 transition">
                     <td class="p-4 whitespace-nowrap text-slate-500">${row.timestamp}</td>
                     <td class="p-4 font-bold text-slate-900">${row.driverName}</td>
@@ -198,12 +203,15 @@
                     <td class="p-4 font-bold ${parseFloat(row.temperature) < 0 ? 'text-blue-600' : 'text-amber-600'}">${row.temperature} °C</td>
                     <td class="p-4">${row.seals}</td>
                     <td class="p-4">
-                        ${row.podUrl && row.podUrl.includes('http') ? `<button onclick="openModal('${row.podUrl}')" class="text-brand-600 font-bold hover:underline flex items-center gap-1"><i class="fa-solid fa-image"></i> عرض POD</button>` : '<span class="text-slate-400">-</span>'}
+                        ${row.podUrl ? `<button onclick="openModal('${row.podUrl}')" class="text-brand-600 font-bold hover:underline flex items-center gap-1"><i class="fa-solid fa-image"></i> عرض POD</button>` : '<span class="text-slate-400">-</span>'}
                     </td>
                     <td class="p-4">
-                        ${row.sealUrl && row.sealUrl.includes('http') ? `<button onclick="openModal('${row.sealUrl}')" class="text-brand-600 font-bold hover:underline flex items-center gap-1"><i class="fa-solid fa-stamp"></i> عرض السيل</button>` : '<span class="text-slate-400">-</span>'}
+                        ${row.sealUrl ? `<button onclick="openModal('${row.sealUrl}')" class="text-brand-600 font-bold hover:underline flex items-center gap-1"><i class="fa-solid fa-stamp"></i> عرض السيل</button>` : '<span class="text-slate-400">-</span>'}
                     </td>
                     <td class="p-4 font-bold text-slate-900">${row.qcInspector}</td>
+                    <td class="p-4">
+                        <button onclick="deleteRecord('${row.key}')" class="text-red-500 hover:text-red-700 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -221,6 +229,30 @@
             renderTable(filtered);
         }
 
+        function deleteRecord(key) {
+            if (confirm("هل أنت تأكد من حذف هذا السجل نهائياً؟")) {
+                database.ref('qc_inspections/' + key).remove();
+            }
+        }
+
+        function exportToCSV() {
+            if (allRecords.length === 0) {
+                alert("لا توجد بيانات للتصدير!");
+                return;
+            }
+            let csvContent = "\uFEFFالتاريخ والوقت,اسم السائق,نوع السيارة,حالة الفاصل,نوع الحمولة,أكواد QR,درجة الحرارة,الأختام,مسؤول الجودة,الملاحظات\n";
+            allRecords.forEach(r => {
+                csvContent += `"${r.timestamp}","${r.driverName}","${r.vehicleType}","${r.hasSeparator}","${r.cargoType}","${r.qrCodes}","${r.temperature}","${r.seals}","${r.qcInspector}","${r.notes}"\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `QC_Report_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function openModal(url) {
             document.getElementById('modal-img-element').src = url;
             document.getElementById('image-modal').classList.remove('hidden');
@@ -230,7 +262,7 @@
             document.getElementById('image-modal').classList.add('hidden');
         }
 
-        fetchSheetData();
+        listenToRealtimeData();
     </script>
 </body>
 </html>

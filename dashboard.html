@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم ومراقبة الجودة - QC Dashboard</title>
+    
+    <!-- Cairo Font & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff', 100: '#ede9fe', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 800: '#5b21b6', 900: '#4c1d95',
+                        }
+                    },
+                    fontFamily: { sans: ['Cairo', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f1f5f9; }
+        .card-glow { box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.08); }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-slate-800">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Header Navigation -->
+        <header class="bg-white rounded-3xl p-6 card-glow border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-black text-2xl shadow-lg">
+                    QC
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-slate-900 leading-tight">لوحة متابعة وتحليلات عمليات الجودة (QC Dashboard)</h1>
+                    <p class="text-xs font-bold text-slate-500">مراقبة وترحيل بيانات الشحنات المباشرة</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="fetchSheetData()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-3 rounded-2xl flex items-center gap-2 shadow-md transition">
+                    <i class="fa-solid fa-rotate text-sm" id="refresh-icon"></i>
+                    <span>تحديث البيانات المباشرة</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 card-glow flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500">إجمالي عمليات الفحص</p>
+                    <h3 class="text-2xl font-black text-slate-900 mt-1" id="kpi-total-logs">0</h3>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 card-glow flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500">سيارات بفاصل حراري</p>
+                    <h3 class="text-2xl font-black text-emerald-600 mt-1" id="kpi-separator-count">0</h3>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-arrows-split-up-and-left"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 card-glow flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500">متوسط درجة الحرارة</p>
+                    <h3 class="text-2xl font-black text-blue-600 mt-1" id="kpi-avg-temp">0 °C</h3>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-temperature-three-quarters"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-100 card-glow flex flex-col md:flex-row gap-3">
+            <div class="flex-1 relative">
+                <input type="text" id="search-input" onkeyup="filterTable()" placeholder="ابحث باسم السائق، نوع السيارة، رقم السيل، أو مسؤول الجودة..." class="w-full pl-4 pr-10 py-3 rounded-2xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-brand-600">
+                <i class="fa-solid fa-magnifying-glass absolute right-4 top-3.5 text-slate-400"></i>
+            </div>
+            <select id="cargo-filter" onchange="filterTable()" class="px-4 py-3 rounded-2xl border border-slate-200 text-xs font-bold text-slate-700 bg-white">
+                <option value="">كل أنواع الحمولات</option>
+                <option value="مجمدات">مجمدات</option>
+                <option value="خضار/فواكه">خضار/فواكه</option>
+                <option value="جاف">بضائع جافة</option>
+            </select>
+        </div>
+
+        <!-- Data Table Container -->
+        <div class="bg-white rounded-3xl border border-slate-100 card-glow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 font-extrabold border-b border-slate-200">
+                        <tr>
+                            <th class="p-4">التاريخ والوقت</th>
+                            <th class="p-4">السائق</th>
+                            <th class="p-4">نوع السيارة</th>
+                            <th class="p-4">الفاصل</th>
+                            <th class="p-4">نوع الحمولة</th>
+                            <th class="p-4">أكواد QR</th>
+                            <th class="p-4">الحرارة</th>
+                            <th class="p-4">الأختام</th>
+                            <th class="p-4">صورة POD</th>
+                            <th class="p-4">صورة السيل</th>
+                            <th class="p-4">مسؤول QC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table-body" class="divide-y divide-slate-100 font-semibold text-slate-800">
+                        <tr>
+                            <td colspan="11" class="text-center py-8 text-slate-400 font-bold">جاري تحميل البيانات من شيت الجودة...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-3xl max-w-xl w-full p-4 overflow-hidden">
+            <button onclick="closeModal()" class="absolute top-3 left-3 bg-slate-100 text-slate-800 rounded-full w-8 h-8 font-bold flex items-center justify-center z-10">✕</button>
+            <img id="modal-img-element" src="" class="w-full max-h-[80vh] object-contain rounded-2xl">
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxznliUPxkJil8JNgGz6vQGVrOXzd7W3nGsQyOyow5lc7YHLvCyYnnYruwWRLaj3Cxp/exec";
+
+        let allRecords = [];
+
+        function fetchSheetData() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('fa-spin');
+
+            fetch(SCRIPT_URL)
+                .then(res => res.json())
+                .then(data => {
+                    allRecords = data.records || [];
+                    renderTable(allRecords);
+                    updateKPIs(allRecords);
+                })
+                .catch(err => {
+                    document.getElementById('data-table-body').innerHTML = `
+                        <tr>
+                            <td colspan="11" class="text-center py-8 text-red-500 font-bold">تعذر تحميل البيانات المباشرة حالياً</td>
+                        </tr>
+                    `;
+                })
+                .finally(() => {
+                    icon.classList.remove('fa-spin');
+                });
+        }
+
+        function updateKPIs(data) {
+            document.getElementById('kpi-total-logs').innerText = data.length;
+            
+            const separatorCount = data.filter(r => r.hasSeparator === "يوجد فاصل").length;
+            document.getElementById('kpi-separator-count').innerText = separatorCount;
+
+            const temps = data.map(r => parseFloat(r.temperature)).filter(t => !isNaN(t));
+            const avgTemp = temps.length > 0 ? (temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1) : 0;
+            document.getElementById('kpi-avg-temp').innerText = `${avgTemp} °C`;
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('data-table-body');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-slate-400 font-bold">لا توجد سجلات مسجلة بعد</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(row => `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="p-4 whitespace-nowrap text-slate-500">${row.timestamp}</td>
+                    <td class="p-4 font-bold text-slate-900">${row.driverName}</td>
+                    <td class="p-4">${row.vehicleType}</td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${row.hasSeparator === 'يوجد فاصل' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">
+                            ${row.hasSeparator}
+                        </span>
+                    </td>
+                    <td class="p-4">${row.cargoType}</td>
+                    <td class="p-4 font-mono text-[11px] text-brand-700">${row.qrCodes}</td>
+                    <td class="p-4 font-bold ${parseFloat(row.temperature) < 0 ? 'text-blue-600' : 'text-amber-600'}">${row.temperature} °C</td>
+                    <td class="p-4">${row.seals}</td>
+                    <td class="p-4">
+                        ${row.podUrl && row.podUrl.includes('http') ? `<button onclick="openModal('${row.podUrl}')" class="text-brand-600 font-bold hover:underline flex items-center gap-1"><i class="fa-solid fa-image"></i> عرض POD</button>` : '<span class="text-slate-400">-</span>'}
+                    </td>
+                    <td class="p-4">
+                        ${row.sealUrl && row.sealUrl.includes('http') ? `<button onclick="openModal('${row.sealUrl}')" class="text-brand-600 font-bold hover:underline flex items-center gap-1"><i class="fa-solid fa-stamp"></i> عرض السيل</button>` : '<span class="text-slate-400">-</span>'}
+                    </td>
+                    <td class="p-4 font-bold text-slate-900">${row.qcInspector}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterTable() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const cargoFilter = document.getElementById('cargo-filter').value;
+
+            const filtered = allRecords.filter(r => {
+                const matchesQuery = Object.values(r).some(val => String(val).toLowerCase().includes(query));
+                const matchesCargo = !cargoFilter || (r.cargoType && r.cargoType.includes(cargoFilter));
+                return matchesQuery && matchesCargo;
+            });
+
+            renderTable(filtered);
+        }
+
+        function openModal(url) {
+            document.getElementById('modal-img-element').src = url;
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        // Fetch on load
+        fetchSheetData();
+    </script>
+</body>
+</html>

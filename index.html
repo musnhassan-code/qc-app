@@ -162,19 +162,15 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-2">1. صورة السيارة من الداخل (POD) <span class="text-red-500">*</span></label>
-                <input type="file" id="pod-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handlePODImage(this)">
-                <div onclick="document.getElementById('pod-camera-input').click()" class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer transition flex flex-col items-center justify-center gap-2 min-h-[110px]" id="pod-preview-box">
-                    <i class="fa-solid fa-camera text-2xl text-brand-600"></i>
-                    <span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة داخلية الشاحنة</span>
-                </div>
+                <!-- Direct File Input allowing both Camera and Gallery -->
+                <input type="file" id="pod-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer" onchange="handlePODImage(this)">
+                <div id="pod-preview-box" class="mt-2"></div>
             </div>
-            <div>
+            <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-700 mb-2">2. صورة أختام السيل (Seal Image)</label>
-                <input type="file" id="seal-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleSealImage(this)">
-                <div onclick="document.getElementById('seal-camera-input').click()" class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer transition flex flex-col items-center justify-center gap-2 min-h-[110px]" id="seal-preview-box">
-                    <i class="fa-solid fa-stamp text-2xl text-brand-600"></i>
-                    <span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (اختياري)</span>
-                </div>
+                <!-- Direct File Input allowing both Camera and Gallery -->
+                <input type="file" id="seal-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer" onchange="handleSealImage(this)">
+                <div id="seal-preview-box" class="mt-2"></div>
                 <div class="grid grid-cols-2 gap-2 mt-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-700 mb-1">رقم السيل الأول (Seal 1) <span class="text-red-500">*</span></label>
@@ -290,7 +286,6 @@
             else document.getElementById('scanner-wrapper').classList.add('hidden');
         }
 
-        // Image Resize Helper
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -304,7 +299,7 @@
                     else { if (height > max_size) { width *= max_size / height; height = max_size; } }
                     canvas.width = width;
                     canvas.height = height;
-                    canvas.getContext('canvas').drawImage(img, 0, 0, width, height);
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     callback(canvas.toDataURL('image/jpeg', 0.7));
                 }
                 img.src = e.target.result;
@@ -317,8 +312,10 @@
                 compressImage(input.files[0], function(base64) {
                     podImageData = base64;
                     document.getElementById('pod-preview-box').innerHTML = `
-                        <img src="${base64}" class="max-h-36 rounded-xl border border-brand-500">
-                        <span class="text-[10px] font-bold text-emerald-600">✓ تم التجميع والضغط بنجاح</span>
+                        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-emerald-700 text-xs font-bold">
+                            <i class="fa-solid fa-check-circle text-base"></i>
+                            <span>تم التقاط/اختيار صورة POD بنجاح</span>
+                        </div>
                     `;
                 });
             }
@@ -330,8 +327,10 @@
                 compressImage(file, function(base64) {
                     sealImageData = base64;
                     document.getElementById('seal-preview-box').innerHTML = `
-                        <img src="${base64}" class="max-h-36 rounded-xl border border-brand-500">
-                        <span class="text-[10px] font-bold text-brand-600">جاري مسح الأرقام (OCR)...</span>
+                        <div class="flex items-center gap-2 bg-brand-50 border border-brand-200 p-2 rounded-xl text-brand-700 text-xs font-bold">
+                            <i class="fa-solid fa-check-circle text-base"></i>
+                            <span>تم حفظ صورة السيل (جاري القراءة...)</span>
+                        </div>
                     `;
                     Tesseract.recognize(file, 'eng')
                         .then(({ data: { text } }) => {
@@ -340,10 +339,6 @@
                                 if (!document.getElementById('seal-1-num').value) document.getElementById('seal-1-num').value = numbers[0] || '';
                                 if (numbers.length > 1 && !document.getElementById('seal-2-num').value) document.getElementById('seal-2-num').value = numbers[1] || '';
                             }
-                            document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم الضغط والتقاط الصورة بنجاح";
-                        })
-                        .catch(() => {
-                            document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم الحفظ بنجاح";
                         });
                 });
             }
@@ -364,7 +359,7 @@
             if (!actualTemp.value.trim()) { actualTemp.classList.add('animate-shake'); isValid = false; }
             if (!seal1.value.trim()) { seal1.classList.add('animate-shake'); isValid = false; }
             if (!qcInspector.value.trim()) { qcInspector.classList.add('animate-shake'); isValid = false; }
-            if (!podImageData) { showToast("برجاء التقاط صورة داخل الشاحنة (POD)", "error"); isValid = false; }
+            if (!podImageData) { showToast("برجاء اختيار أو التقاط صورة داخل الشاحنة (POD)", "error"); isValid = false; }
 
             if (!isValid) {
                 showToast("برجاء استكمال كافة الحقول المطلوبة", "error");
@@ -427,8 +422,10 @@
             podImageData = "";
             sealImageData = "";
             renderScannedList();
-            document.getElementById('pod-preview-box').innerHTML = `<i class="fa-solid fa-camera text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة داخلية الشاحنة</span>`;
-            document.getElementById('seal-preview-box').innerHTML = `<i class="fa-solid fa-stamp text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (اختياري)</span>`;
+            document.getElementById('pod-preview-box').innerHTML = '';
+            document.getElementById('seal-preview-box').innerHTML = '';
+            document.getElementById('pod-camera-input').value = '';
+            document.getElementById('seal-camera-input').value = '';
         }
 
         function showToast(message, type = "success") {

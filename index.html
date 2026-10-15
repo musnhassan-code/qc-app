@@ -220,24 +220,24 @@
                 </div>
             </div>
 
-            <!-- Seal Photo & OCR Extractor -->
+            <!-- Seal Photo & Manual/OCR Fields -->
             <div>
-                <label class="block text-xs font-bold text-slate-700 mb-2">2. صورة السيل واستخراج أرقام الأختام تلقائياً <span class="text-red-500">*</span></label>
+                <label class="block text-xs font-bold text-slate-700 mb-2">2. صورة أختام السيل (Seal Image)</label>
                 <input type="file" id="seal-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleSealImage(this)">
                 <div onclick="document.getElementById('seal-camera-input').click()" class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer transition flex flex-col items-center justify-center gap-2 min-h-[110px]" id="seal-preview-box">
                     <i class="fa-solid fa-stamp text-2xl text-brand-600"></i>
-                    <span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (Seal Image)</span>
+                    <span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (اختياري للاستخراج الآلي)</span>
                 </div>
 
-                <!-- Extracted Seals Fields -->
+                <!-- Input Fields for Seal Numbers -->
                 <div class="grid grid-cols-2 gap-2 mt-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-600 mb-1">رقم السيل الأول (Seal 1) <span class="text-red-500">*</span></label>
-                        <input type="text" id="seal-1-num" placeholder="رقم السيل 1" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800">
+                        <label class="block text-[10px] font-bold text-slate-700 mb-1">رقم السيل الأول (Seal 1) <span class="text-red-500">*</span></label>
+                        <input type="text" id="seal-1-num" placeholder="اكتب رقم السيل يدوياً..." class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:border-brand-600 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-600 mb-1">رقم السيل الثاني (Seal 2)</label>
-                        <input type="text" id="seal-2-num" placeholder="رقم السيل 2 (اختياري)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800">
+                        <label class="block text-[10px] font-bold text-slate-700 mb-1">رقم السيل الثاني (Seal 2)</label>
+                        <input type="text" id="seal-2-num" placeholder="رقم السيل 2 (اختياري)" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:border-brand-600 focus:outline-none">
                     </div>
                 </div>
             </div>
@@ -273,7 +273,6 @@
 
     <!-- JS Logic Scripts -->
     <script>
-        // GOOGLE APPS SCRIPT SCRIPT URL
         const SCRIPT_URL = "https://script.google.com/a/macros/noon.com/s/AKfycbyFRqvPsgukRv5wwhWYWdjH4Q7ziVk8I31R8cfirp3yQm_0qh6DHq0uaaBTp1noKQUo/exec";
 
         let scannedQRCodes = [];
@@ -282,7 +281,6 @@
         let podImageData = "";
         let sealImageData = "";
 
-        // Set Current DateTime
         function updateDateTime() {
             const now = new Date();
             const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -290,7 +288,6 @@
         }
         updateDateTime();
 
-        // Select Cargo Type
         function selectCargoType(type) {
             currentCargoType = type;
             document.querySelectorAll('.cargo-type-btn').forEach(btn => {
@@ -302,7 +299,6 @@
             activeBtn.classList.add('border-brand-600', 'bg-brand-50/50', 'text-brand-700');
         }
 
-        // Add Scanned or Manual QR
         function addQRCode(codeText) {
             if (!codeText) return;
             const typeArabic = currentCargoType === 'frozen' ? 'مجمدات' : (currentCargoType === 'fresh' ? 'خضار/فواكه' : 'جاف');
@@ -344,7 +340,6 @@
             `).join('');
         }
 
-        // QR Scanner Logic
         function startScanner() {
             document.getElementById('scanner-wrapper').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
@@ -374,7 +369,6 @@
             }
         }
 
-        // Image Handling Logic
         function handlePODImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -400,27 +394,25 @@
                         <span class="text-[10px] font-bold text-brand-600">جاري قراءة أرقام الأختام (OCR)...</span>
                     `;
                     
-                    // Run OCR Engine
                     Tesseract.recognize(file, 'eng', { logger: m => console.log(m) })
                         .then(({ data: { text } }) => {
                             const numbers = text.match(/\d+/g);
                             if (numbers && numbers.length > 0) {
-                                document.getElementById('seal-1-num').value = numbers[0] || '';
-                                if (numbers.length > 1) document.getElementById('seal-2-num').value = numbers[1] || '';
+                                if (!document.getElementById('seal-1-num').value) document.getElementById('seal-1-num').value = numbers[0] || '';
+                                if (numbers.length > 1 && !document.getElementById('seal-2-num').value) document.getElementById('seal-2-num').value = numbers[1] || '';
                                 showToast("تم استخراج أرقام الأختام تلقائياً", "success");
                             }
                             document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم التقاط صورة السيل";
                             document.getElementById('seal-preview-box').querySelector('span').className = "text-[10px] font-bold text-emerald-600";
                         })
                         .catch(() => {
-                            document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم حفظ الصورة (يرجى إدخال الأرقام يدوياً)";
+                            document.getElementById('seal-preview-box').querySelector('span').innerText = "✓ تم حفظ الصورة";
                         });
                 }
                 reader.readAsDataURL(file);
             }
         }
 
-        // Form Validation & Shake Animation
         function validateAndGetFormData() {
             let isValid = true;
             const driverName = document.getElementById('driver-name');
@@ -429,7 +421,6 @@
             const seal1 = document.getElementById('seal-1-num');
             const qcInspector = document.getElementById('qc-inspector-name');
 
-            // Reset animations
             [driverName, vehicleType, actualTemp, seal1, qcInspector].forEach(el => el.classList.remove('animate-shake'));
 
             if (!driverName.value.trim()) { driverName.classList.add('animate-shake'); isValid = false; }
@@ -464,7 +455,6 @@
             };
         }
 
-        // Submit to Google Sheets
         function submitInspectionReport() {
             const formData = validateAndGetFormData();
             if (!formData) return;
@@ -492,7 +482,6 @@
             });
         }
 
-        // Reset Form
         function resetForm() {
             document.getElementById('driver-name').value = '';
             document.getElementById('vehicle-type').value = '';
@@ -507,10 +496,9 @@
             sealImageData = "";
             renderScannedList();
             document.getElementById('pod-preview-box').innerHTML = `<i class="fa-solid fa-camera text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة داخلية الشاحنة</span>`;
-            document.getElementById('seal-preview-box').innerHTML = `<i class="fa-solid fa-stamp text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (Seal Image)</span>`;
+            document.getElementById('seal-preview-box').innerHTML = `<i class="fa-solid fa-stamp text-2xl text-brand-600"></i><span class="text-xs font-bold text-slate-600">اضغط لالتقاط صورة السيل (اختياري للاستخراج الآلي)</span>`;
         }
 
-        // Toast Helper
         function showToast(message, type = "success") {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');

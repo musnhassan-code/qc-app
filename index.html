@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>تطبيق مراقبة الجودة والشحن - QC App</title>
     
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Libraries for Scanning & OCR -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -37,6 +41,7 @@
 
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -52,7 +57,7 @@
 
     <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
 
-        <!-- STEP 1 -->
+        <!-- STEP 1: Driver & Vehicle -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">1</span>
@@ -89,7 +94,7 @@
             </div>
         </section>
 
-        <!-- STEP 2 -->
+        <!-- STEP 2: Cargo Scanning -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2">
@@ -128,7 +133,7 @@
             </div>
         </section>
 
-        <!-- STEP 3 -->
+        <!-- STEP 3: Temperature -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-3">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">3</span>
@@ -143,7 +148,7 @@
             </div>
         </section>
 
-        <!-- STEP 4 -->
+        <!-- STEP 4: POD & Seal Photo -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">4</span>
@@ -171,7 +176,7 @@
             </div>
         </section>
 
-        <!-- STEP 5 -->
+        <!-- STEP 5: QC Inspector -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">5</span>
@@ -187,6 +192,7 @@
             </div>
         </section>
 
+        <!-- Submit Button -->
         <button onclick="submitInspectionReport()" id="btn-submit" class="w-full btn-purple text-white font-extrabold text-base py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl">
             <i class="fa-solid fa-cloud-arrow-up text-xl"></i><span>اعتماد التقرير وترحيل البيانات</span>
         </button>
@@ -194,8 +200,8 @@
     </main>
 
     <script>
-        // PUBLIC EXECUTABLE GOOGLE APPS SCRIPT URL
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxznliUPxkJil8JNgGz6vQGVrOXzd7W3nGsQyOyow5lc7YHLvCyYnnYruwWRLaj3Cxp/exec";
+        // LATEST WORKING DEPLOYMENT SCRIPT URL
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2I_2u4_ueRnx0MUvwS3s5Yw3mcytAJhRkAEoMRdE4cemukJ4D73y7SUt-chgrMbss/exec";
 
         let scannedQRCodes = [];
         let currentCargoType = 'frozen';
@@ -312,7 +318,8 @@
 
         function handleSealImage(input) {
             if (input.files && input.files[0]) {
-                compressImage(input.files[0], function(base64) {
+                const file = input.files[0];
+                compressImage(file, function(base64) {
                     sealImageData = base64;
                     document.getElementById('seal-preview-box').innerHTML = `
                         <div class="flex items-center gap-2 bg-brand-50 border border-brand-200 p-2 rounded-xl text-brand-700 text-xs font-bold">
@@ -320,6 +327,14 @@
                             <span>تم تجهيز صورة السيل بنجاح</span>
                         </div>
                     `;
+                    Tesseract.recognize(file, 'eng')
+                        .then(({ data: { text } }) => {
+                            const numbers = text.match(/\d+/g);
+                            if (numbers && numbers.length > 0) {
+                                if (!document.getElementById('seal-1-num').value) document.getElementById('seal-1-num').value = numbers[0] || '';
+                                if (numbers.length > 1 && !document.getElementById('seal-2-num').value) document.getElementById('seal-2-num').value = numbers[1] || '';
+                            }
+                        });
                 });
             }
         }

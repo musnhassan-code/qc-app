@@ -137,8 +137,8 @@
     </div>
 
     <script>
-        // NEW UPDATED SCRIPT URL
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2I_2u4_ueRnx0MUvwS3s5Yw3mcytAJhRkAEoMRdE4cemukJ4D73y7SUt-chgrMbss/exec";
+        // ضع رابط الـ Web App العام هنا بدون نطاق الشركة
+        const SCRIPT_URL = "https://script.google.com/a/macros/noon.com/s/AKfycbxD3UrsusrXurvTjq2w4Va04NX_Iq_tybk23GPmxr1yr6hflj2DGMzRCpfelwFSg5SI/exec";
 
         let allRecords = [];
 
@@ -156,7 +156,7 @@
                 .catch(err => {
                     document.getElementById('data-table-body').innerHTML = `
                         <tr>
-                            <td colspan="11" class="text-center py-8 text-red-500 font-bold">تعذر تحميل البيانات المباشرة حالياً</td>
+                            <td colspan="11" class="text-center py-8 text-red-500 font-bold">تعذر تحميل البيانات المباشرة حالياً (يرجى التأكد من صلاحيات الرابط)</td>
                         </tr>
                     `;
                 })

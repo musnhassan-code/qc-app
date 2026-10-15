@@ -194,8 +194,8 @@
     </main>
 
     <script>
-        // UPDATED GOOGLE APPS SCRIPT URL
-        const SCRIPT_URL = "https://script.google.com/a/macros/noon.com/s/AKfycbxe4BxVUid9NnCm_UNxdZ1pPykQ5aHmCWWdy35ytoiteIl3e7-_n5Mt1uDIypvEm4cn/exec";
+        // PUBLIC EXECUTABLE GOOGLE APPS SCRIPT URL
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxznliUPxkJil8JNgGz6vQGVrOXzd7W3nGsQyOyow5lc7YHLvCyYnnYruwWRLaj3Cxp/exec";
 
         let scannedQRCodes = [];
         let currentCargoType = 'frozen';
@@ -374,8 +374,7 @@
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(formData)
             })
-            .then(res => res.json())
-            .then(data => {
+            .then(() => {
                 showToast("تم إرسال كافة البيانات والصور للـ Google Sheet بنجاح!", "success");
                 setTimeout(() => { resetForm(); }, 1500);
             })

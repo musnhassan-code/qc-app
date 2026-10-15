@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -18,18 +17,10 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            800: '#5b21b6',
-                            900: '#4c1d95',
+                            50: '#f5f3ff', 100: '#ede9fe', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 800: '#5b21b6', 900: '#4c1d95',
                         }
                     },
-                    fontFamily: {
-                        sans: ['Cairo', 'sans-serif'],
-                    }
+                    fontFamily: { sans: ['Cairo', 'sans-serif'] }
                 }
             }
         }
@@ -37,9 +28,8 @@
 
     <style>
         body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        .card-glow { box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.08), 0 8px 10px -6px rgba(124, 58, 237, 0.04); }
+        .card-glow { box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.08); }
         .btn-purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.39); }
-        .btn-purple:active { transform: scale(0.98); }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
         .animate-shake { animation: shake 0.4s ease-in-out; border-color: #ef4444 !important; }
     </style>
@@ -63,7 +53,7 @@
 
     <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
 
-        <!-- STEP 1: Driver & Vehicle -->
+        <!-- STEP 1 -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">1</span>
@@ -90,7 +80,7 @@
                     <i class="fa-solid fa-arrows-split-up-and-left text-brand-600 text-base"></i>
                     <div>
                         <p class="text-xs font-bold text-slate-800">يوجد فاصل حراري (Separator)</p>
-                        <p class="text-[10px] text-slate-500 font-medium">في حالة تحميل شحنة ميكس (مجمدات + جاف)</p>
+                        <p class="text-[10px] text-slate-500 font-medium">في حالة تحميل شحنة ميكس</p>
                     </div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
@@ -100,7 +90,7 @@
             </div>
         </section>
 
-        <!-- STEP 2: Cargo Scanning -->
+        <!-- STEP 2 -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2">
@@ -139,7 +129,7 @@
             </div>
         </section>
 
-        <!-- STEP 3: Temperature -->
+        <!-- STEP 3 -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-3">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">3</span>
@@ -154,7 +144,7 @@
             </div>
         </section>
 
-        <!-- STEP 4: POD & Seal Photo -->
+        <!-- STEP 4 -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">4</span>
@@ -162,14 +152,12 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-2">1. صورة السيارة من الداخل (POD) <span class="text-red-500">*</span></label>
-                <!-- Direct File Input allowing both Camera and Gallery -->
-                <input type="file" id="pod-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer" onchange="handlePODImage(this)">
+                <input type="file" id="pod-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 cursor-pointer" onchange="handlePODImage(this)">
                 <div id="pod-preview-box" class="mt-2"></div>
             </div>
             <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-700 mb-2">2. صورة أختام السيل (Seal Image)</label>
-                <!-- Direct File Input allowing both Camera and Gallery -->
-                <input type="file" id="seal-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer" onchange="handleSealImage(this)">
+                <input type="file" id="seal-camera-input" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 cursor-pointer" onchange="handleSealImage(this)">
                 <div id="seal-preview-box" class="mt-2"></div>
                 <div class="grid grid-cols-2 gap-2 mt-3">
                     <div>
@@ -184,7 +172,7 @@
             </div>
         </section>
 
-        <!-- STEP 5: QC Inspector -->
+        <!-- STEP 5 -->
         <section class="bg-white rounded-3xl p-5 border border-slate-100 card-glow space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                 <span class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-black">5</span>
@@ -294,13 +282,14 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const max_size = 800;
+                    const max_size = 400; // تصغير الحجم أوتوماتيكياً لسرعة الإرسال
                     if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } }
                     else { if (height > max_size) { width *= max_size / height; height = max_size; } }
                     canvas.width = width;
                     canvas.height = height;
-                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.7));
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    callback(canvas.toDataURL('image/jpeg', 0.5));
                 }
                 img.src = e.target.result;
             }
@@ -314,7 +303,7 @@
                     document.getElementById('pod-preview-box').innerHTML = `
                         <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-emerald-700 text-xs font-bold">
                             <i class="fa-solid fa-check-circle text-base"></i>
-                            <span>تم التقاط/اختيار صورة POD بنجاح</span>
+                            <span>تم اختيار صورة POD بنجاح</span>
                         </div>
                     `;
                 });
@@ -323,23 +312,14 @@
 
         function handleSealImage(input) {
             if (input.files && input.files[0]) {
-                const file = input.files[0];
-                compressImage(file, function(base64) {
+                compressImage(input.files[0], function(base64) {
                     sealImageData = base64;
                     document.getElementById('seal-preview-box').innerHTML = `
                         <div class="flex items-center gap-2 bg-brand-50 border border-brand-200 p-2 rounded-xl text-brand-700 text-xs font-bold">
                             <i class="fa-solid fa-check-circle text-base"></i>
-                            <span>تم حفظ صورة السيل (جاري القراءة...)</span>
+                            <span>تم حفظ صورة السيل بنجاح</span>
                         </div>
                     `;
-                    Tesseract.recognize(file, 'eng')
-                        .then(({ data: { text } }) => {
-                            const numbers = text.match(/\d+/g);
-                            if (numbers && numbers.length > 0) {
-                                if (!document.getElementById('seal-1-num').value) document.getElementById('seal-1-num').value = numbers[0] || '';
-                                if (numbers.length > 1 && !document.getElementById('seal-2-num').value) document.getElementById('seal-2-num').value = numbers[1] || '';
-                            }
-                        });
                 });
             }
         }
@@ -359,7 +339,6 @@
             if (!actualTemp.value.trim()) { actualTemp.classList.add('animate-shake'); isValid = false; }
             if (!seal1.value.trim()) { seal1.classList.add('animate-shake'); isValid = false; }
             if (!qcInspector.value.trim()) { qcInspector.classList.add('animate-shake'); isValid = false; }
-            if (!podImageData) { showToast("برجاء اختيار أو التقاط صورة داخل الشاحنة (POD)", "error"); isValid = false; }
 
             if (!isValid) {
                 showToast("برجاء استكمال كافة الحقول المطلوبة", "error");
@@ -397,8 +376,8 @@
                 body: JSON.stringify(formData)
             })
             .then(() => {
-                showToast("تم اعتماد التقرير وترحيل كافة التفاصيل للـ Google Sheet بنجاح!", "success");
-                setTimeout(() => { resetForm(); }, 2000);
+                showToast("تم اعتماد التقرير وترحيل كافة التفاصيل للشيت بنجاح!", "success");
+                setTimeout(() => { resetForm(); }, 1500);
             })
             .catch(err => {
                 showToast("حدث خطأ أثناء الاتصال بالخادم", "error");
